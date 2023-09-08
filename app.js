@@ -1,4 +1,5 @@
 const express = require('express');
+const router = express.Router();
 const bcrypt = require('bcrypt');
 const porta = process.env.PORT;
 const app = express();
