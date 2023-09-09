@@ -3,43 +3,41 @@ const router = express.Router()
 const Users = require('../../models/user');
 const bcrypt = require('bcrypt');
 
-router.get("/",async (req,res)=>{
+router.get("/", async (req,res)=>{
 	try{
-		const data = await Users.find({})
-	    return res.send({message:"Rota users metodo GET OK"})
+		const users = await Users.find({})
+	    return res.send(users)
 	}catch(error){
 		return res.status(500).send({error: 'Erro ao consultar Usuario'})
 	}
 
 });
-
 router.post('/create', async (req,res)=>{
 	const { email, password } = req.body;
+	if(!email || !password) return res.send({ error: "Dados insuficientes!"});
 	try{
-		const data = await Users.findOne({email});
-		if(data) return res.send({error: `Usuario já registrado!`});
-		const dataUser =  await Users.create(req.body);
-		if(dataUser){
-			dataUser.password = undefined;
-			return res.status(200).send({dataUser});
-		} 
+		if(await Users.findOne({ email })) return res.send({error: 'Usuario já registrado!'});
+		const user = await Users.create(req.body);
+		user.password = undefined;
+		return res.send(user);
 	}catch(error){
-		return res.send({error: 'Erro ao criar usuario, se o erro persistir entre em contato com o administrador!'});
+		return res.send({error: "Erro ao buscar usuario!"})
 	}
 })
 
 router.post('/auth', async (req,res)=>{
-	const { email, password} = req.body;
+	const { email, password } = req.body;
 	try{
 		if(!email || !password) return res.send({error: 'Dados insuficientes!'});
-		const dataAuth = await Users.findOne({email}).select('+password');
-		if(!dataAuth) return res.send({error: "Usuario nao registrado!"});
-		bcrypt.compare(password, dataAuth.password, (err,same)=>{
-			if(!same) return res.send({error: 'Erro ao autenticar usuario! verifique seu usuario e senha'});
-			return res.send(dataAuth)
-		})
-	}catch(e){
-		return res.send({error: 'Erro ao autenticar usuario!'})
+		const user = await Users.findOne({email}).select('+password');
+		if(!user) return res.send({error: "Usuario nao registrado!"});
+		const auth_ok = await bcrypt.compare(password, user.password)
+		if(!auth_ok) return res.send({error: 'Erro ao autenticar usuario!'});
+		user.password = undefined;
+		return res.send(user);
+	}catch(error){
+		console.log(error)
+		return res.send({error: "Erro ao buscar usuario!"})
 	}
 })
 module.exports = router;
